@@ -1,0 +1,19 @@
+spring:
+  data:
+    mongodb:
+      uri: ${MONGODB_URI:mongodb+srv://katarideepak_db_user:VRCpUhl5KiYvbWxD@cluster0.5jfwqxr.mongodb.net/dockeriq?retryWrites=true&w=majority&appName=Cluster0}
+
+logging:
+  level:
+    com.dockeriq.service: INFO
+    org.springframework.data.mongodb: WARN
+    root: WARN
+
+server:
+  port: ${SERVER_PORT:8080}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
