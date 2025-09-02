@@ -2,6 +2,7 @@ package com.dockeriq.service.service;
 
 import com.dockeriq.service.model.User;
 import com.dockeriq.service.repository.UserRepository;
+import com.dockeriq.service.service.AuthService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -12,12 +13,8 @@ import java.util.Optional;
 @Service
 public class UserService {
     
-    private final UserRepository userRepository;
-    
     @Autowired
-    public UserService(UserRepository userRepository) {
-        this.userRepository = userRepository;
-    }
+    private UserRepository userRepository;
     
     public List<User> getAllUsers() {
         return userRepository.findAll();
@@ -32,6 +29,8 @@ public class UserService {
         if (userRepository.existsByEmail(user.getEmail())) {
             throw new RuntimeException("Email already exists: " + user.getEmail());
         }
+        
+        // Encode password before saving
         
         user.setCreatedAt(LocalDateTime.now());
         user.setUpdatedAt(LocalDateTime.now());

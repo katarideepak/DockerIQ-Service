@@ -2,6 +2,7 @@ package com.dockeriq.service.config;
 
 import com.dockeriq.service.model.User;
 import com.dockeriq.service.repository.UserRepository;
+import com.dockeriq.service.service.AuthService;
 
 import lombok.extern.slf4j.Slf4j;
 
@@ -15,12 +16,11 @@ import org.springframework.stereotype.Component;
 @Component
 public class DataInitializer implements CommandLineRunner {
     
-    private final UserRepository userRepository;
+    @Autowired
+    private UserRepository userRepository;
     
     @Autowired
-    public DataInitializer(UserRepository userRepository) {
-        this.userRepository = userRepository;
-    }
+    private AuthService authService;
     
     @Override
     public void run(String... args) throws Exception {
@@ -32,8 +32,14 @@ public class DataInitializer implements CommandLineRunner {
             superUser.setFirstName("deepak");
             superUser.setLastName("k");
             superUser.setRole("supervisor");
+            superUser.setCreatedBy("admin");
             superUser.setActive(true);
             superUser.setPasswordReset(false);
+            superUser.setCreatedAt(LocalDateTime.now());
+            superUser.setUpdatedAt(LocalDateTime.now());
+            
+            // Encode password before saving
+            authService.encodePassword(superUser);
             
             userRepository.save(superUser);
             

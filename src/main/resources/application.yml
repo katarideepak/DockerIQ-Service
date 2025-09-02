@@ -1,20 +1,56 @@
 spring:
-  application:
-    name: dockeriq-service
   data:
     mongodb:
       uri: mongodb://localhost:27017/dockeriq
-      auto-index-creation: true
-  jackson:
-    default-property-inclusion: non_null
-    serialization:
-      write-dates-as-timestamps: false
+  
+  # Disable MongoDB query logging to hide sensitive data
+  jpa:
+    show-sql: false
+  
+  # Disable MongoDB query logging
+  mongodb:
+    auto-index-creation: false
+  
+  # Security configuration
+  security:
+    user:
+      name: admin
+      password: admin
 
+# JWT Configuration
+jwt:
+  secret: your-secret-key-here-make-it-long-and-secure-in-production
+  expiration: 86400000
+
+# Server Configuration
 server:
   port: 8080
   servlet:
     context-path: /api
 
+# Logging Configuration - Hide sensitive information
+logging:
+  level:
+    com.dockeriq.service: INFO
+    org.springframework.security: INFO
+    org.springframework.data.mongodb.core.MongoTemplate: WARN
+    org.springframework.data.mongodb.core.MongoDbUtils: WARN
+    org.mongodb.driver: WARN
+    org.springframework.web: INFO
+    root: WARN
+    # Completely disable MongoDB query logging
+    org.springframework.data.mongodb: WARN
+    org.springframework.data.mongodb.core.query: WARN
+  
+  # Disable MongoDB query logging
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} - %msg%n"
+  
+  # Hide sensitive data in logs
+  file:
+    name: logs/application.log
+
+# Actuator Configuration
 management:
   endpoints:
     web:
@@ -23,10 +59,3 @@ management:
   endpoint:
     health:
       show-details: always
-
-logging:
-  level:
-    com.dockeriq.service: DEBUG
-    org.springframework.data.mongodb: DEBUG
-  pattern:
-    console: "%d{yyyy-MM-dd HH:mm:ss} - %msg%n"

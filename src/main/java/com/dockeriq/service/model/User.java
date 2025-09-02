@@ -36,6 +36,10 @@ public class User {
     private Boolean active;
     
     private Boolean passwordReset;
+
+    private String createdBy;
+
+    private String updatedBy;
     
     private LocalDateTime createdAt;
     
