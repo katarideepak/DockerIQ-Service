@@ -1,7 +1,16 @@
 spring:
   data:
     mongodb:
-      uri: ${MONGODB_URI:mongodb+srv://katarideepak_db_user:VRCpUhl5KiYvbWxD@cluster0.5jfwqxr.mongodb.net/dockeriq?retryWrites=true&w=majority&appName=Cluster0}
+      uri: ${MONGODB_URI:mongodb+srv://katarideepak_db_user:VRCpUvbWxD@cluster0.5jfwqxr.mongodb.net/dockeriq?retryWrites=true&w=majority&appName=Cluster0}
+  
+  # File upload configuration for production
+  servlet:
+    multipart:
+      enabled: true
+      max-file-size: 10MB
+      max-request-size: 50MB
+      file-size-threshold: 2KB
+      location: ${java.io.tmpdir}
 
 logging:
   level:

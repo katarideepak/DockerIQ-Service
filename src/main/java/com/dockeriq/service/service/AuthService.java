@@ -32,30 +32,55 @@ public class AuthService {
 
     private final JwtUtil jwtUtil = new JwtUtil();
 
-        public AuthResponse authenticate(AuthRequest authRequest) {
+    public AuthResponse authenticate(AuthRequest authRequest) {
+        log.info("Authentication attempt for user: {}", authRequest.getEmail());
+        
         // Find user by email only
         Optional<User> user = userRepository.findByEmail(authRequest.getEmail());
         
-        if (user.isPresent() && passwordEncoder.matches(authRequest.getPassword(), user.get().getPassword())) {
-            Optional<UserDetails> userDetails = userDetailsRepository.findByEmail(user.get().getEmail());
-            AuthResponse authResponse = new AuthResponse();
-            authResponse.setToken(jwtUtil.generateToken(user.get().getEmail()));
-            authResponse.setEmail(user.get().getEmail());
-            authResponse.setRole(user.get().getRole());
-            if (userDetails.isPresent()) {
-                authResponse.setFirstName(userDetails.get().getFirstName());
-                authResponse.setLastName(userDetails.get().getLastName());
+        if (user.isPresent()) {
+            log.debug("User found with email: {}", authRequest.getEmail());
+            
+            if (passwordEncoder.matches(authRequest.getPassword(), user.get().getPassword())) {
+                log.debug("Password validation successful for user: {}", authRequest.getEmail());
+                
+                Optional<UserDetails> userDetails = userDetailsRepository.findByEmail(user.get().getEmail());
+                AuthResponse authResponse = new AuthResponse();
+                
+                String token = jwtUtil.generateToken(user.get().getEmail());
+                authResponse.setToken(token);
+                authResponse.setEmail(user.get().getEmail());
+                authResponse.setRole(user.get().getRole());
+                
+                if (userDetails.isPresent()) {
+                    log.debug("User details found for: {}", authRequest.getEmail());
+                    authResponse.setFirstName(userDetails.get().getFirstName());
+                    authResponse.setLastName(userDetails.get().getLastName());
+                } else {
+                    log.debug("No user details found for: {}", authRequest.getEmail());
+                }
+                
+                log.info("Authentication successful for user: {} with role: {}", 
+                        authRequest.getEmail(), user.get().getRole());
+                return authResponse;
+            } else {
+                log.warn("Password validation failed for user: {}", authRequest.getEmail());
+                throw new RuntimeException("Invalid email or password");
             }
-            return authResponse;
         } else {
-            log.warn("Authentication failed for user: {}", authRequest.getEmail());
+            log.warn("User not found with email: {}", authRequest.getEmail());
             throw new RuntimeException("Invalid email or password");
         }
     }
     
     public void encodePassword(User user) {
+        log.debug("Encoding password for user: {}", user.getEmail());
         if (user.getPassword() != null && !user.getPassword().startsWith("$2a$")) {
+            log.debug("Password needs encoding for user: {}", user.getEmail());
             user.setPassword(passwordEncoder.encode(user.getPassword()));
+            log.debug("Password encoded successfully for user: {}", user.getEmail());
+        } else {
+            log.debug("Password already encoded for user: {}", user.getEmail());
         }
     }
 }
