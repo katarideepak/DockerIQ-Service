@@ -8,6 +8,8 @@ import org.springframework.stereotype.Service;
 import com.dockeriq.service.dto.AuthRequest;
 import com.dockeriq.service.dto.AuthResponse;
 import com.dockeriq.service.model.User;
+import com.dockeriq.service.model.UserDetails;
+import com.dockeriq.service.repository.UserDetailsRepository;
 import com.dockeriq.service.repository.UserRepository;
 import com.dockeriq.service.security.JwtUtil;
 
@@ -23,6 +25,9 @@ public class AuthService {
     private UserRepository userRepository;
 
     @Autowired
+    private UserDetailsRepository userDetailsRepository;
+
+    @Autowired
     private PasswordEncoder passwordEncoder;
 
     private final JwtUtil jwtUtil = new JwtUtil();
@@ -32,12 +37,15 @@ public class AuthService {
         Optional<User> user = userRepository.findByEmail(authRequest.getEmail());
         
         if (user.isPresent() && passwordEncoder.matches(authRequest.getPassword(), user.get().getPassword())) {
+            Optional<UserDetails> userDetails = userDetailsRepository.findByEmail(user.get().getEmail());
             AuthResponse authResponse = new AuthResponse();
             authResponse.setToken(jwtUtil.generateToken(user.get().getEmail()));
             authResponse.setEmail(user.get().getEmail());
             authResponse.setRole(user.get().getRole());
-            authResponse.setFirstName(user.get().getFirstName());
-            authResponse.setLastName(user.get().getLastName());
+            if (userDetails.isPresent()) {
+                authResponse.setFirstName(userDetails.get().getFirstName());
+                authResponse.setLastName(userDetails.get().getLastName());
+            }
             return authResponse;
         } else {
             log.warn("Authentication failed for user: {}", authRequest.getEmail());

@@ -1,6 +1,7 @@
 package com.dockeriq.service.controller;
 
 import com.dockeriq.service.model.User;
+import com.dockeriq.service.model.UserDetails;
 import com.dockeriq.service.service.UserService;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -16,52 +17,62 @@ import java.util.Optional;
 @CrossOrigin(origins = "*")
 public class UserController {
     
-    @Autowired
-    private UserService userService;
+    private final UserService userService;
     
-   
+    @Autowired
+    public UserController(UserService userService) {
+        this.userService = userService;
+    }
+    
     @GetMapping
-    public ResponseEntity<List<User>> getAllUsers() {
-        List<User> users = userService.getAllUsers();
-        return ResponseEntity.ok(users);
+    public ResponseEntity<?> getAllUsers() {
+        try {
+            List<User> users = userService.getAllUsers();
+            return ResponseEntity.ok(users);
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body("Failed to retrieve users");
+        }
     }
 
     @PostMapping
-    public ResponseEntity<User> createUser(@Valid @RequestBody User user) {
+    public ResponseEntity<?> createUser(@Valid @RequestBody User user) {
         try {
             User createdUser = userService.createUser(user);
-            return ResponseEntity.status(HttpStatus.CREATED).body(createdUser);
+            return ResponseEntity.status(HttpStatus.CREATED)
+                .body(createdUser);
         } catch (RuntimeException e) {
-            return ResponseEntity.badRequest().build();
+            return ResponseEntity.badRequest()
+                .body("User creation failed");
         }
     }
     
     @GetMapping("/{email}")
-    public ResponseEntity<User> getUserByEmail(@PathVariable String email) {
-        Optional<User> user = userService.getUserByEmail(email);
-        return user.map(ResponseEntity::ok)
-                .orElse(ResponseEntity.notFound().build());
+    public ResponseEntity<?> getUserByEmail(@PathVariable String email) {
+        try {
+            Optional<User> user = userService.getUserByEmail(email);
+            if (user.isPresent()) {
+                return ResponseEntity.ok(user.get());
+            } else {
+                return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body("User not found with email: " + email);
+            }
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body("Failed to retrieve user");
+        }
     }
     
     @PutMapping("/{email}")
-    public ResponseEntity<User> updateUser(@PathVariable String email, @Valid @RequestBody User userDetails) {
+    public ResponseEntity<?> updateUser(@PathVariable String email, @Valid @RequestBody UserDetails userDetails) {
         try {
-            User updatedUser = userService.updateUser(email, userDetails);
-            return ResponseEntity.ok(updatedUser);
+            UserDetails updatedUser = userService.updateUser(email, userDetails);
+            return ResponseEntity.status(HttpStatus.OK)
+                .body(updatedUser);
         } catch (RuntimeException e) {
-            return ResponseEntity.notFound().build();
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                .body("User not found with email: " + email);
         }
     }
-    
-    @DeleteMapping("/{email}")
-    public ResponseEntity<Void> deleteUser(@PathVariable String email) {
-        try {
-            userService.deleteUser(email);
-            return ResponseEntity.noContent().build();
-        } catch (RuntimeException e) {
-            return ResponseEntity.notFound().build();
-        }
-    }
-    
 }
 
