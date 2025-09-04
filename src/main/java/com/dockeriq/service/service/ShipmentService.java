@@ -1,8 +1,9 @@
 package com.dockeriq.service.service;
 
-import com.dockeriq.service.model.AddShipment;
 import com.dockeriq.service.model.Shipment;
 import com.dockeriq.service.repository.ShipmentRepository;
+import com.dockeriq.service.utils.DateUtils;
+
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -23,17 +24,17 @@ public class ShipmentService {
     
     @Autowired
     private GridFSService gridFSService;
-    
+
     @Autowired
-    private TrackingNumberGeneratorService trackingNumberGenerator;
+    private SequenceGeneratorService sequenceGenerator;
     
     /**
      * Create a new shipment with images from multipart form data
-     * @param addShipment shipment data
+     * @param shipment shipment data
      * @param images list of uploaded images
      * @return created shipment
      */
-    public Shipment createShipmentWithImages(AddShipment addShipment, List<MultipartFile> images) {
+    public Shipment createShipmentWithImages(Shipment shipment, List<MultipartFile> images) {
         log.info("Creating shipment with images. Images count: {}", images != null ? images.size() : 0);
         try {
             // Process images if provided
@@ -63,7 +64,8 @@ public class ShipmentService {
                 log.debug("Stored {} images in GridFS with IDs: {}", imageIds.size(), imageIds);
             }
             
-            Shipment shipment = createShipmentEntity(addShipment, imageIds);
+            shipment.setImageIds(imageIds);
+            createShipmentEntity(shipment);
             log.info("Successfully created shipment with ID: {} and tracking number: {}", 
                     shipment.getId(), shipment.getTrackingNumber());
             return shipment;
@@ -79,9 +81,9 @@ public class ShipmentService {
      * @param addShipment shipment data
      * @return created shipment
      */
-    public Shipment createShipment(AddShipment addShipment) {
-        log.info("Creating shipment without images for user: {}", addShipment.getCreatedBy());
-        Shipment shipment = createShipmentEntity(addShipment, null);
+    public Shipment createShipment(Shipment shipment) {
+        log.info("Creating shipment without images");
+        createShipmentEntity(shipment);
         log.info("Successfully created shipment with ID: {} and tracking number: {}", 
                 shipment.getId(), shipment.getTrackingNumber());
         return shipment;
@@ -93,30 +95,22 @@ public class ShipmentService {
      * @param imageIds list of GridFS image IDs
      * @return created shipment
      */
-    private Shipment createShipmentEntity(AddShipment addShipment, List<String> imageIds) {
-        log.debug("Creating shipment entity for user: {}", addShipment.getCreatedBy());
+    private void createShipmentEntity(Shipment shipment) {
+        log.debug("Creating shipment entity for user: {}", shipment.getCreatedBy());
         
-        // Create shipment entity
-        Shipment shipment = new Shipment();
-        shipment.setBasicInformation(addShipment.getBasicInformation());
-        shipment.setCustomerFields(addShipment.getCustomerFields());
-        shipment.setImageIds(imageIds);
-        shipment.setNotes(addShipment.getNotes());
-        shipment.setDeviceInformation(addShipment.getDeviceInformation());
-        
-        String trackingNumber = trackingNumberGenerator.generateTrackingNumber();
-        shipment.setTrackingNumber(trackingNumber);
+        String datePrefix = DateUtils.getCurrentDate_YYYYMMDD();
+        Long sequence = sequenceGenerator.generateSequence("shipments_" + datePrefix);
+        String trackingNumber = String.format("DKIQ%s%02d", datePrefix, sequence);
         log.debug("Generated tracking number: {}", trackingNumber);
+        shipment.setTrackingNumber(trackingNumber);
         
         shipment.setStatus("CREATED");
         shipment.setCreatedAt(LocalDateTime.now());
         shipment.setUpdatedAt(LocalDateTime.now());
-        shipment.setCreatedBy(addShipment.getCreatedBy());
-        shipment.setLastModifiedBy(addShipment.getCreatedBy());
+    
         
         Shipment savedShipment = shipmentRepository.save(shipment);
         log.debug("Shipment saved to database with ID: {}", savedShipment.getId());
-        return savedShipment;
     }
     
     /**

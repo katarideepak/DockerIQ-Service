@@ -1,9 +1,13 @@
 package com.dockeriq.service.controller;
 
-import com.dockeriq.service.model.AddShipment;
 import com.dockeriq.service.model.Shipment;
 import com.dockeriq.service.service.ShipmentService;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -21,17 +25,14 @@ import java.util.Optional;
 @RestController
 @RequestMapping("/shipments")
 @CrossOrigin(origins = "*")
+@Tag(name = "Shipments", description = "Shipment management APIs")
 public class ShipmentController {
     
-    private final ShipmentService shipmentService;
-    private final ObjectMapper objectMapper;
-    
     @Autowired
-    public ShipmentController(ShipmentService shipmentService, ObjectMapper objectMapper) {
-        this.shipmentService = shipmentService;
-        this.objectMapper = objectMapper;
-        log.info("ShipmentController initialized with ShipmentService and ObjectMapper");
-    }
+    private ShipmentService shipmentService;
+
+    @Autowired
+    private ObjectMapper objectMapper;
     
     /**
      * Create shipment with images using multipart form data
@@ -39,18 +40,24 @@ public class ShipmentController {
      * @param images list of uploaded images (optional)
      * @return created shipment
      */
+    @Operation(summary = "Create shipment with images", description = "Create a new shipment with optional image attachments")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "201", description = "Shipment created successfully"),
+            @ApiResponse(responseCode = "400", description = "Invalid shipment data"),
+            @ApiResponse(responseCode = "500", description = "Internal server error")
+    })
     @PostMapping(value = "/with-images", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<?> createShipmentWithImages(
-            @RequestParam("shipmentData") String shipmentDataJson,
-            @RequestParam(value = "images", required = false) List<MultipartFile> images) {
+            @Parameter(description = "JSON string containing shipment data") @RequestParam("shipmentData") String shipmentDataJson,
+            @Parameter(description = "List of image files to attach") @RequestParam(value = "images", required = false) List<MultipartFile> images) {
         
         log.info("Creating shipment with images. Images count: {}", images != null ? images.size() : 0);
         try {
             // Deserialize the JSON string to AddShipment object
-            AddShipment addShipment = objectMapper.readValue(shipmentDataJson, AddShipment.class);
-            log.debug("Deserialized shipment data: {}", addShipment.getBasicInformation());
+            Shipment shipment = objectMapper.readValue(shipmentDataJson, Shipment.class);
+            log.debug("Deserialized shipment data: {}", shipment.getBasicInformation());
             
-            Shipment createdShipment = shipmentService.createShipmentWithImages(addShipment, images);
+            Shipment createdShipment = shipmentService.createShipmentWithImages(shipment, images);
             log.info("Successfully created shipment with ID: {} and tracking number: {}", 
                     createdShipment.getId(), createdShipment.getTrackingNumber());
             return ResponseEntity.status(HttpStatus.CREATED).body(createdShipment);
@@ -70,14 +77,20 @@ public class ShipmentController {
      * @param addShipment shipment data
      * @return created shipment
      */
+    @Operation(summary = "Create shipment", description = "Create a new shipment without images")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "201", description = "Shipment created successfully"),
+            @ApiResponse(responseCode = "400", description = "Invalid shipment data"),
+            @ApiResponse(responseCode = "500", description = "Internal server error")
+    })
     @PostMapping(consumes = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<?> createShipment(@Valid @RequestBody AddShipment addShipment) {
-        log.info("Creating shipment without images for user: {}", addShipment.getCreatedBy());
+    public ResponseEntity<?> createShipment(@Valid @RequestBody Shipment shipment) {
+        log.info("Creating shipment without images");
         try {
-            Shipment createdShipment = shipmentService.createShipment(addShipment);
+            shipmentService.createShipment(shipment);
             log.info("Successfully created shipment with ID: {} and tracking number: {}", 
-                    createdShipment.getId(), createdShipment.getTrackingNumber());
-            return ResponseEntity.status(HttpStatus.CREATED).body(createdShipment);
+                    shipment.getId(), shipment.getTrackingNumber());
+            return ResponseEntity.status(HttpStatus.CREATED).body(shipment);
         } catch (IllegalArgumentException e) {
             log.warn("Invalid shipment data provided: {}", e.getMessage());
             return ResponseEntity.badRequest().body(e.getMessage());
@@ -93,8 +106,14 @@ public class ShipmentController {
      * @param id shipment ID
      * @return shipment if found
      */
+    @Operation(summary = "Get shipment by ID", description = "Retrieve a shipment by its unique identifier")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Shipment found"),
+            @ApiResponse(responseCode = "404", description = "Shipment not found"),
+            @ApiResponse(responseCode = "500", description = "Internal server error")
+    })
     @GetMapping("/{id}")
-    public ResponseEntity<?> getShipmentById(@PathVariable String id) {
+    public ResponseEntity<?> getShipmentById(@Parameter(description = "Shipment ID") @PathVariable String id) {
         log.info("Retrieving shipment by ID: {}", id);
         try {
             Optional<Shipment> shipment = shipmentService.getShipmentById(id);
@@ -143,6 +162,11 @@ public class ShipmentController {
      * Get all shipments
      * @return list of all shipments
      */
+    @Operation(summary = "Get all shipments", description = "Retrieve all shipments in the system")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Shipments retrieved successfully"),
+            @ApiResponse(responseCode = "500", description = "Internal server error")
+    })
     @GetMapping
     public ResponseEntity<?> getAllShipments() {
         log.info("Retrieving all shipments");
