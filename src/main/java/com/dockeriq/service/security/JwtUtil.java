@@ -17,7 +17,7 @@ public class JwtUtil {
         return Jwts.builder()
                 .subject(username)
                 .issuedAt(new Date())
-                .expiration(new Date(System.currentTimeMillis() + 1000 * 60 * 60)) // 1 hour
+                .expiration(new Date(System.currentTimeMillis() + 1000 * 60 * 60)) // 60 minutes
                 .signWith(key)
                 .compact();
     }
@@ -32,9 +32,14 @@ public class JwtUtil {
                 .getSubject();
     }
 
-    // Validate Token
+    // Validate Token with username
     public boolean validateToken(String token, String username) {
         return username.equals(extractUsername(token)) && !isTokenExpired(token);
+    }
+
+    // Validate Token
+    public boolean validateToken(String token) {
+        return !isTokenExpired(token);
     }
 
     private boolean isTokenExpired(String token) {
