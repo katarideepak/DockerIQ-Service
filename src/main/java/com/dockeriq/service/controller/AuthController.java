@@ -45,7 +45,7 @@ public class AuthController {
             return ResponseEntity.ok(response);
         } catch (Exception e) {
             log.warn("Login failed for user: {}. Error: {}", authRequest.getEmail(), e.getMessage());
-            return ResponseEntity.badRequest().build();
+            throw new RuntimeException(e.getMessage());
         }
     }
 

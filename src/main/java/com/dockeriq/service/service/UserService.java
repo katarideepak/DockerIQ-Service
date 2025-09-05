@@ -22,6 +22,9 @@ public class UserService {
 
     @Autowired
     private UserDetailsRepository userDetailsRepository;
+
+    @Autowired
+    private AuthService authService;
     
     public List<User> getAllUsers() {
         log.debug("Retrieving all users from database");
@@ -50,7 +53,8 @@ public class UserService {
         }
         
         log.debug("Email is unique, proceeding with user creation");
-        
+        user.setPassword("welcome123"); // remove later
+        authService.encodePassword(user);
         // Encode password before saving
         user.setCreatedAt(LocalDateTime.now());
         user.setUpdatedAt(LocalDateTime.now());

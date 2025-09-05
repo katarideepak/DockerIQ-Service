@@ -47,7 +47,7 @@ public class AuthService {
                 Optional<UserDetails> userDetails = userDetailsRepository.findByEmail(user.get().getEmail());
                 AuthResponse authResponse = new AuthResponse();
                 
-                String token = jwtUtil.generateToken(user.get().getEmail());
+                String token = jwtUtil.generateToken(user.get().getEmail(), user.get().getRole());
                 authResponse.setToken(token);
                 authResponse.setEmail(user.get().getEmail());
                 authResponse.setRole(user.get().getRole());
@@ -65,11 +65,11 @@ public class AuthService {
                 return authResponse;
             } else {
                 log.warn("Password validation failed for user: {}", authRequest.getEmail());
-                throw new RuntimeException("Invalid email or password");
+                throw new RuntimeException("Invalid password");
             }
         } else {
             log.warn("User not found with email: {}", authRequest.getEmail());
-            throw new RuntimeException("Invalid email or password");
+            throw new RuntimeException("Invalid email id");
         }
     }
     

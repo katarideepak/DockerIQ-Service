@@ -37,7 +37,7 @@ public class DataInitializer implements CommandLineRunner {
             superUser.setEmail("katarideepak@gmail.com");
             superUser.setPassword("hello123"); // remove later
             superUser.setCreatedBy("admin");
-            superUser.setRole("supervisor");
+            superUser.setRole("SUPERVISOR");
             superUser.setActive(true);
             superUser.setPasswordReset(false);
             superUser.setCreatedAt(LocalDateTime.now());
