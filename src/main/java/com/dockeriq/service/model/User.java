@@ -19,21 +19,23 @@ public class User {
     
     @Indexed(unique = true)
     private String email; // Email is now unique and primary.
-    
-    private String password;
-    
+    @NotBlank(message = "Role is required")
     private String role;
-
+    @NotBlank(message = "First name is required")
+    private String firstName;
+    @NotBlank(message = "Last name is required")
+    private String lastName;
+    @NotBlank(message = "address is required")
+    private String address;
+    @NotBlank(message = "phoneNumber is required")
+    private String phoneNumber;
     private Boolean active;
-    
+    private String password;
     private Boolean passwordReset;
-
     private String createdBy;
-
     private String updatedBy;
-    
     private LocalDateTime createdAt;
-    
     private LocalDateTime updatedAt;
+
     
 }

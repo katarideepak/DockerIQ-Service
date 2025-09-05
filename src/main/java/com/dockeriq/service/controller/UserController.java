@@ -1,7 +1,6 @@
 package com.dockeriq.service.controller;
 
 import com.dockeriq.service.model.User;
-import com.dockeriq.service.model.UserDetails;
 import com.dockeriq.service.service.UserService;
 import jakarta.validation.Valid;
 import lombok.extern.slf4j.Slf4j;
@@ -77,10 +76,10 @@ public class UserController {
     }
     
     @PutMapping("/{email}")
-    public ResponseEntity<?> updateUser(@PathVariable String email, @Valid @RequestBody UserDetails userDetails) {
+    public ResponseEntity<?> updateUser(@PathVariable String email, @Valid @RequestBody User user) {
         log.info("Updating user with email: {}", email);
         try {
-            UserDetails updatedUser = userService.updateUser(email, userDetails);
+            User updatedUser = userService.updateUser(email, user);
             log.info("Successfully updated user with email: {}", email);
             return ResponseEntity.status(HttpStatus.OK)
                 .body(updatedUser);

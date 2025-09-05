@@ -1,8 +1,6 @@
 package com.dockeriq.service.config;
 
 import com.dockeriq.service.model.User;
-import com.dockeriq.service.model.UserDetails;
-import com.dockeriq.service.repository.UserDetailsRepository;
 import com.dockeriq.service.repository.UserRepository;
 import com.dockeriq.service.service.AuthService;
 
@@ -23,9 +21,6 @@ public class DataInitializer implements CommandLineRunner {
     private UserRepository userRepository;
 
     @Autowired
-    private UserDetailsRepository userDetailsRepository;
-    
-    @Autowired
     private AuthService authService;
     
     @Transactional
@@ -43,19 +38,17 @@ public class DataInitializer implements CommandLineRunner {
             superUser.setCreatedAt(LocalDateTime.now());
             superUser.setUpdatedAt(LocalDateTime.now());
 
-            UserDetails userDetails = new UserDetails();
-            userDetails.setFirstName("deepak");
-            userDetails.setLastName("k");
-            userDetails.setAddress("123 Main St");
-            userDetails.setPhoneNumber("9988998899");
-            userDetails.setEmail(superUser.getEmail());
-            userDetails.setCreatedAt(LocalDateTime.now());
-            userDetails.setUpdatedAt(LocalDateTime.now());
+            superUser.setFirstName("deepak");
+            superUser.setLastName("k");
+            superUser.setAddress("123 Main St");
+            superUser.setPhoneNumber("9988998899");
+            superUser.setEmail(superUser.getEmail());
+            superUser.setCreatedAt(LocalDateTime.now());
+            superUser.setUpdatedAt(LocalDateTime.now());
            
             // Encode password before saving
             authService.encodePassword(superUser);
             userRepository.save(superUser);
-            userDetailsRepository.save(userDetails);
             log.info("super user created");
         }
     }

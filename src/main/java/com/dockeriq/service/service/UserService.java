@@ -1,8 +1,6 @@
 package com.dockeriq.service.service;
 
 import com.dockeriq.service.model.User;
-import com.dockeriq.service.model.UserDetails;
-import com.dockeriq.service.repository.UserDetailsRepository;
 import com.dockeriq.service.repository.UserRepository;
 import com.dockeriq.service.service.AuthService;
 import lombok.extern.slf4j.Slf4j;
@@ -19,9 +17,6 @@ public class UserService {
     
     @Autowired
     private UserRepository userRepository;
-
-    @Autowired
-    private UserDetailsRepository userDetailsRepository;
 
     @Autowired
     private AuthService authService;
@@ -44,7 +39,7 @@ public class UserService {
         return user;
     }
     
-    public User createUser(User user) {
+    public String createUser(User user) {
         log.info("Creating new user with email: {}", user.getEmail());
         
         if (userRepository.existsByEmail(user.getEmail())) {
@@ -54,30 +49,38 @@ public class UserService {
         
         log.debug("Email is unique, proceeding with user creation");
         user.setPassword("welcome123"); // remove later
+        user.setPasswordReset   (true);
         authService.encodePassword(user);
         // Encode password before saving
         user.setCreatedAt(LocalDateTime.now());
         user.setUpdatedAt(LocalDateTime.now());
-        
+
+        user.setEmail(user.getEmail());
+        user.setFirstName(user.getFirstName());
+        user.setLastName(user.getLastName());
+        user.setAddress(user.getAddress());
+        user.setPhoneNumber(user.getPhoneNumber());
+        user.setCreatedAt(LocalDateTime.now());
+
         User savedUser = userRepository.save(user);
         log.info("Successfully created user with email: {} and ID: {}", 
                 savedUser.getEmail(), savedUser.getId());
-        return savedUser;
+        return "user created successfully";
     }
     
-    public UserDetails updateUser(String email, UserDetails userDetails) {
+    public User updateUser(String email, User user) {
         log.info("Updating user details for email: {}", email);
         
-        return userDetailsRepository.findByEmail(email)
+        return userRepository.findByEmail(email)
                 .map(existingDetails -> {
                     log.debug("Found existing user details for email: {}", email);
-                    existingDetails.setFirstName(userDetails.getFirstName());
-                    existingDetails.setLastName(userDetails.getLastName());
-                    existingDetails.setAddress(userDetails.getAddress());
-                    existingDetails.setPhoneNumber(userDetails.getPhoneNumber());
+                    existingDetails.setFirstName(user.getFirstName());
+                    existingDetails.setLastName(user.getLastName());
+                    existingDetails.setAddress(user.getAddress());
+                    existingDetails.setPhoneNumber(user.getPhoneNumber());
                     existingDetails.setUpdatedAt(LocalDateTime.now());
                     
-                    UserDetails updatedDetails = userDetailsRepository.save(existingDetails);
+                    User updatedDetails = userRepository.save(existingDetails);
                     log.info("Successfully updated user details for email: {}", email);
                     return updatedDetails;
                 })

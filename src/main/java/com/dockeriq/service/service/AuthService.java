@@ -8,8 +8,6 @@ import org.springframework.stereotype.Service;
 import com.dockeriq.service.dto.AuthRequest;
 import com.dockeriq.service.dto.AuthResponse;
 import com.dockeriq.service.model.User;
-import com.dockeriq.service.model.UserDetails;
-import com.dockeriq.service.repository.UserDetailsRepository;
 import com.dockeriq.service.repository.UserRepository;
 import com.dockeriq.service.security.JwtUtil;
 
@@ -23,9 +21,6 @@ public class AuthService {
 
     @Autowired
     private UserRepository userRepository;
-
-    @Autowired
-    private UserDetailsRepository userDetailsRepository;
 
     @Autowired
     private PasswordEncoder passwordEncoder;
@@ -44,7 +39,6 @@ public class AuthService {
             if (passwordEncoder.matches(authRequest.getPassword(), user.get().getPassword())) {
                 log.debug("Password validation successful for user: {}", authRequest.getEmail());
                 
-                Optional<UserDetails> userDetails = userDetailsRepository.findByEmail(user.get().getEmail());
                 AuthResponse authResponse = new AuthResponse();
                 
                 String token = jwtUtil.generateToken(user.get().getEmail(), user.get().getRole());
@@ -52,10 +46,10 @@ public class AuthService {
                 authResponse.setEmail(user.get().getEmail());
                 authResponse.setRole(user.get().getRole());
                 
-                if (userDetails.isPresent()) {
+                if (user.isPresent()) {
                     log.debug("User details found for: {}", authRequest.getEmail());
-                    authResponse.setFirstName(userDetails.get().getFirstName());
-                    authResponse.setLastName(userDetails.get().getLastName());
+                    authResponse.setFirstName(user.get().getFirstName());
+                    authResponse.setLastName(user.get().getLastName());
                 } else {
                     log.debug("No user details found for: {}", authRequest.getEmail());
                 }
