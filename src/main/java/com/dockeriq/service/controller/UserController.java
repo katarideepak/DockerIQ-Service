@@ -47,7 +47,7 @@ public class UserController {
             User createdUser = userService.createUser(user);
             log.info("Successfully created user with email: {}", createdUser.getEmail());
             return ResponseEntity.status(HttpStatus.CREATED)
-                .body(createdUser);
+                .body("user created successfully");
         } catch (RuntimeException e) {
             log.warn("User creation failed for email: {}. Error: {}", user.getEmail(), e.getMessage());
             return ResponseEntity.badRequest()

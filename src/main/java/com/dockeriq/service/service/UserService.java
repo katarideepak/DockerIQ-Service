@@ -39,7 +39,7 @@ public class UserService {
         return user;
     }
     
-    public String createUser(User user) {
+    public User createUser(User user) {
         log.info("Creating new user with email: {}", user.getEmail());
         
         if (userRepository.existsByEmail(user.getEmail())) {
@@ -65,7 +65,7 @@ public class UserService {
         User savedUser = userRepository.save(user);
         log.info("Successfully created user with email: {} and ID: {}", 
                 savedUser.getEmail(), savedUser.getId());
-        return "user created successfully";
+        return savedUser;
     }
     
     public User updateUser(String email, User user) {
