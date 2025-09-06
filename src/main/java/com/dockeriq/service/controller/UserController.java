@@ -89,5 +89,20 @@ public class UserController {
                 .body("User not found with email: " + email);
         }
     }
+
+    @DeleteMapping("/{email}")
+    public ResponseEntity<?> deleteUser(@PathVariable String email) {
+        log.info("Deleting user with email: {}", email);
+        try {
+            userService.deleteUser(email);
+            log.info("Successfully deleted user with email: {}", email);
+            return ResponseEntity.status(HttpStatus.OK)
+                .body("User deleted successfully");
+        } catch (RuntimeException e) {
+            log.warn("User not found for deletion. Email: {}", email);
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                .body("User not found with email: " + email);
+        }
+    }
 }
 
