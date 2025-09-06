@@ -33,38 +33,31 @@ public class AuthService {
         // Find user by email only
         Optional<User> user = userRepository.findByEmail(authRequest.getEmail());
         
-        if (user.isPresent()) {
-            log.debug("User found with email: {}", authRequest.getEmail());
+            if (!user.isPresent()) {
+                log.debug("User found with email: {}", authRequest.getEmail());
+                throw new RuntimeException("User not found");
+            } 
             
-            if (passwordEncoder.matches(authRequest.getPassword(), user.get().getPassword())) {
-                log.debug("Password validation successful for user: {}", authRequest.getEmail());
-                
-                AuthResponse authResponse = new AuthResponse();
-                
-                String token = jwtUtil.generateToken(user.get().getEmail(), user.get().getRole());
-                authResponse.setToken(token);
-                authResponse.setEmail(user.get().getEmail());
-                authResponse.setRole(user.get().getRole());
-                
-                if (user.isPresent()) {
-                    log.debug("User details found for: {}", authRequest.getEmail());
-                    authResponse.setFirstName(user.get().getFirstName());
-                    authResponse.setLastName(user.get().getLastName());
-                } else {
-                    log.debug("No user details found for: {}", authRequest.getEmail());
-                }
-                
-                log.info("Authentication successful for user: {} with role: {}", 
-                        authRequest.getEmail(), user.get().getRole());
-                return authResponse;
-            } else {
+            if(user.get().getActive() == null || !user.get().getActive()) {
+                log.warn("User is inactive for user: {}", authRequest.getEmail());
+                throw new RuntimeException("User is inactive");
+            }
+
+            if(!passwordEncoder.matches(authRequest.getPassword(), user.get().getPassword())) {
                 log.warn("Password validation failed for user: {}", authRequest.getEmail());
                 throw new RuntimeException("Invalid password");
             }
-        } else {
-            log.warn("User not found with email: {}", authRequest.getEmail());
-            throw new RuntimeException("Invalid email id");
-        }
+
+            AuthResponse authResponse = new AuthResponse();
+            authResponse.setFirstName(user.get().getFirstName());
+            authResponse.setLastName(user.get().getLastName());
+            String token = jwtUtil.generateToken(user.get().getEmail(), user.get().getRole());
+            authResponse.setToken(token);
+            authResponse.setEmail(user.get().getEmail());
+            authResponse.setRole(user.get().getRole());
+            log.info("Authentication successful for user: {} with role: {}", 
+                    authRequest.getEmail(), user.get().getRole());
+            return authResponse;
     }
     
     public void encodePassword(User user) {

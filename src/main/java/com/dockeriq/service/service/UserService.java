@@ -39,6 +39,19 @@ public class UserService {
         return user;
     }
     
+    public Optional<String> getUserRoleByEmail(String email) {
+        log.debug("Retrieving user role by email: {}", email);
+        Optional<User> user = userRepository.findByEmail(email);
+        if (user.isPresent()) {
+            String role = user.get().getRole();
+            log.debug("User role found for email {}: {}", email, role);
+            return Optional.of(role);
+        } else {
+            log.debug("User not found for role retrieval with email: {}", email);
+            return Optional.empty();
+        }
+    }
+    
     public User createUser(User user) {
         log.info("Creating new user with email: {}", user.getEmail());
         
@@ -76,9 +89,14 @@ public class UserService {
                     log.debug("Found existing user details for email: {}", email);
                     existingDetails.setFirstName(user.getFirstName());
                     existingDetails.setLastName(user.getLastName());
+                    existingDetails.setEmail(user.getEmail());
+                    existingDetails.setRole(user.getRole());
                     existingDetails.setAddress(user.getAddress());
                     existingDetails.setPhoneNumber(user.getPhoneNumber());
                     existingDetails.setUpdatedAt(LocalDateTime.now());
+                    existingDetails.setUpdatedBy(user.getUpdatedBy());
+                    existingDetails.setActive(user.getActive());
+                    existingDetails.setPasswordReset(user.getPasswordReset());
                     
                     User updatedDetails = userRepository.save(existingDetails);
                     log.info("Successfully updated user details for email: {}", email);

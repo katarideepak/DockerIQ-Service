@@ -1,5 +1,7 @@
 package com.dockeriq.service.security;
 
+import com.dockeriq.service.model.User;
+import com.dockeriq.service.repository.UserRepository;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.jsonwebtoken.ExpiredJwtException;
 import io.jsonwebtoken.MalformedJwtException;
@@ -8,6 +10,7 @@ import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.lang.NonNull;
@@ -25,12 +28,16 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 @Slf4j
 @Component
 public class JwtAuthFilter extends OncePerRequestFilter {
 
     private final JwtUtil jwtUtil = new JwtUtil();
+    
+    @Autowired
+    private UserRepository userRepository;
 
     @Override
     protected void doFilterInternal(@NonNull HttpServletRequest request,
@@ -44,27 +51,54 @@ public class JwtAuthFilter extends OncePerRequestFilter {
             
             try {
                 String username = jwtUtil.extractUsername(token);
-                String role = jwtUtil.extractRole(token);
                 
                 // Debug logging
-                log.info("JWT Debug - Username: {}, Role: {}", username, role);
+                log.info("JWT Debug - Username: {}", username);
 
                 if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
                     if (jwtUtil.validateToken(token, username)) {
-                        // Create authorities from role (ensure uppercase)
-                        List<SimpleGrantedAuthority> authorities = Collections.singletonList(
-                            new SimpleGrantedAuthority("ROLE_" + role.toUpperCase())
-                        );
+                        // Fetch user role from database using username (email)
+                        Optional<User> userOptional = userRepository.findByEmail(username);
                         
-                        log.info("JWT Debug - Created authorities: {}", authorities);
-                        
-                        UsernamePasswordAuthenticationToken authToken =
-                                new UsernamePasswordAuthenticationToken(username, null, authorities);
-                        authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+                        if (userOptional.isPresent()) {
+                            User user = userOptional.get();
+                            String role = user.getRole();
+                            
+                            // check if role is valid
+                            if (role == null || role.isEmpty() || !role.equals(jwtUtil.extractRole(token))) {
+                                log.warn("JWT Debug - Role is null or empty: {}", username);
+                                handleJwtException(response, "Role is null or empty or does not match", HttpStatus.FORBIDDEN);
+                                return;
+                            }
 
-                        // Set authentication in context
-                        SecurityContextHolder.getContext().setAuthentication(authToken);
-                        log.info("JWT Debug - Authentication set in context");
+                            // Check if user is active
+                            if (user.getActive() == null || !user.getActive()) {
+                                log.warn("JWT Debug - User is inactive: {}", username);
+                                handleJwtException(response, "User account is inactive", HttpStatus.FORBIDDEN);
+                                return;
+                            }
+                            
+                            log.info("JWT Debug - Username: {}, Role from DB: {}", username, role);
+                            
+                            // Create authorities from role (ensure uppercase)
+                            List<SimpleGrantedAuthority> authorities = Collections.singletonList(
+                                new SimpleGrantedAuthority("ROLE_" + role.toUpperCase())
+                            );
+                            
+                            log.info("JWT Debug - Created authorities: {}", authorities);
+                            
+                            UsernamePasswordAuthenticationToken authToken =
+                                    new UsernamePasswordAuthenticationToken(username, null, authorities);
+                            authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+
+                            // Set authentication in context
+                            SecurityContextHolder.getContext().setAuthentication(authToken);
+                            log.info("JWT Debug - Authentication set in context");
+                        } else {
+                            log.warn("JWT Debug - User not found in database: {}", username);
+                            handleJwtException(response, "User not found", HttpStatus.UNAUTHORIZED);
+                            return;
+                        }
                     } else {
                         log.warn("JWT Debug - Token validation failed for user: {}", username);
                     }

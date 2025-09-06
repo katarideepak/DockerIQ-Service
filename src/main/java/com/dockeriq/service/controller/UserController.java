@@ -79,6 +79,7 @@ public class UserController {
     public ResponseEntity<?> updateUser(@PathVariable String email, @Valid @RequestBody User user) {
         log.info("Updating user with email: {}", email);
         try {
+            log.info("Updating user with email: {}", user.toString());
             User updatedUser = userService.updateUser(email, user);
             log.info("Successfully updated user with email: {}", email);
             return ResponseEntity.status(HttpStatus.OK)
