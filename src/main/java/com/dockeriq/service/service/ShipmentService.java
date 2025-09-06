@@ -12,8 +12,10 @@ import org.springframework.web.multipart.MultipartFile;
 import java.io.IOException;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.ArrayList;
+import java.util.HashMap;
 
 @Slf4j
 @Service
@@ -104,7 +106,7 @@ public class ShipmentService {
         log.debug("Generated tracking number: {}", trackingNumber);
         shipment.setTrackingNumber(trackingNumber);
         
-        shipment.setStatus("CREATED");
+        shipment.setStatus("In Transit");
         shipment.setCreatedAt(LocalDateTime.now());
         shipment.setUpdatedAt(LocalDateTime.now());
     
@@ -216,12 +218,12 @@ public class ShipmentService {
     }
 
     /**
-     * Get images by shipment tracking number
+     * Get image metadata by shipment tracking number
      * @param trackingNumber shipment tracking number
-     * @return list of images associated with the shipment
+     * @return list of image metadata associated with the shipment
      */
-    public List<byte[]> getImagesByTrackingNumber(String trackingNumber) {
-        log.info("Retrieving images for shipment with tracking number: {}", trackingNumber);
+    public List<Map<String, Object>> getImageMetadataByTrackingNumber(String trackingNumber) {
+        log.info("Retrieving image metadata for shipment with tracking number: {}", trackingNumber);
         
         // First get the shipment to find associated image IDs
         Optional<Shipment> shipment = getShipmentByTrackingNumber(trackingNumber);
@@ -240,19 +242,63 @@ public class ShipmentService {
         
         log.debug("Found {} images for shipment with tracking number: {}", imageIds.size(), trackingNumber);
         
-        // Retrieve all images and return them as a list
-        List<byte[]> images = new ArrayList<>();
+        // Retrieve image metadata for each image
+        List<Map<String, Object>> imageMetadata = new ArrayList<>();
         for (String imageId : imageIds) {
             try {
-                byte[] imageData = gridFSService.retrieveImage(imageId);
-                images.add(imageData);
+                Map<String, Object> metadata = getImageMetadataById(imageId);
+                if (metadata != null) {
+                    imageMetadata.add(metadata);
+                }
             } catch (Exception e) {
-                log.warn("Failed to retrieve image with ID: {}. Skipping...", imageId);
+                log.warn("Failed to retrieve metadata for image with ID: {}. Skipping...", imageId);
             }
         }
         
-        log.info("Successfully retrieved {} out of {} images for shipment with tracking number: {}", 
-                images.size(), imageIds.size(), trackingNumber);
-        return images;
+        log.info("Successfully retrieved {} out of {} image metadata for shipment with tracking number: {}", 
+                imageMetadata.size(), imageIds.size(), trackingNumber);
+        return imageMetadata;
+    }
+    
+    
+    /**
+     * Get image metadata by image ID
+     * @param imageId GridFS image ID
+     * @return image metadata
+     */
+    public Map<String, Object> getImageMetadataById(String imageId) {
+        log.debug("Retrieving image metadata with ID: {}", imageId);
+        try {
+            var fileInfo = gridFSService.getImageInfo(imageId);
+            if (fileInfo == null) {
+                log.warn("Image not found with ID: {}", imageId);
+                return null;
+            }
+            
+            Map<String, Object> metadata = new HashMap<>();
+            metadata.put("id", imageId);
+            metadata.put("filename", fileInfo.getFilename());
+            metadata.put("size", fileInfo.getLength());
+            metadata.put("uploadDate", fileInfo.getUploadDate());
+            
+            // Get content type from metadata
+            String contentType = "image/jpeg"; // default
+            if (fileInfo.getMetadata() != null && fileInfo.getMetadata().getString("contentType") != null) {
+                contentType = fileInfo.getMetadata().getString("contentType");
+            }
+            metadata.put("contentType", contentType);
+            
+            // Generate image URLs for frontend
+            metadata.put("url", "/shipments/images/" + imageId);
+            metadata.put("apiUrl", "/api/images/" + imageId);
+            
+            log.debug("Successfully retrieved image metadata with ID: {}, Filename: {}, Content-Type: {}", 
+                    imageId, fileInfo.getFilename(), contentType);
+            return metadata;
+            
+        } catch (Exception e) {
+            log.error("Failed to retrieve image metadata with ID: {}. Error: {}", imageId, e.getMessage(), e);
+            return null;
+        }
     }
 }

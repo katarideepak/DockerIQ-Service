@@ -1,6 +1,7 @@
 package com.dockeriq.service.controller;
 
 import com.dockeriq.service.model.Shipment;
+import com.dockeriq.service.service.GridFSService;
 import com.dockeriq.service.service.ShipmentService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.swagger.v3.oas.annotations.Operation;
@@ -18,7 +19,10 @@ import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.multipart.MaxUploadSizeExceededException;
 
 import jakarta.validation.Valid;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 @Slf4j
@@ -33,6 +37,9 @@ public class ShipmentController {
 
     @Autowired
     private ObjectMapper objectMapper;
+    
+    @Autowired
+    private GridFSService gridFSService;
     
     /**
      * Create shipment with images using multipart form data
@@ -224,46 +231,5 @@ public class ShipmentController {
                 .body("Failed to delete shipment");
         }
     }
-    
-    /**
-     * Global exception handler for file upload size exceeded
-     */
-    @ExceptionHandler(MaxUploadSizeExceededException.class)
-    public ResponseEntity<?> handleMaxUploadSizeExceeded(MaxUploadSizeExceededException e) {
-        log.warn("File upload size exceeded: {}", e.getMessage());
-        return ResponseEntity.status(HttpStatus.PAYLOAD_TOO_LARGE)
-            .body("File upload size exceeded. Maximum file size is 10MB and maximum request size is 50MB");
-    }
-
-    /**
-     * Get images by shipment tracking number
-     * @param trackingNumber shipment tracking number
-     * @return list of images associated with the shipment
-     */
-    @GetMapping("/tracking/{trackingNumber}/images")
-    public ResponseEntity<?> getImagesByTrackingNumber(@PathVariable String trackingNumber) {
-        log.info("Retrieving images for shipment with tracking number: {}", trackingNumber);
-        try {
-            List<byte[]> images = shipmentService.getImagesByTrackingNumber(trackingNumber);
-            
-            if (images.isEmpty()) {
-                log.info("No images found for shipment with tracking number: {}", trackingNumber);
-                return ResponseEntity.ok().body("No images found for this shipment");
-            }
-            
-            log.debug("Successfully retrieved {} images for shipment with tracking number: {}", 
-                    images.size(), trackingNumber);
-            return ResponseEntity.ok().body(images);
-            
-        } catch (RuntimeException e) {
-            log.warn("Shipment not found with tracking number: {}", trackingNumber);
-            return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                .body("Shipment not found with tracking number: " + trackingNumber);
-        } catch (Exception e) {
-            log.error("Failed to retrieve images for shipment with tracking number: {}. Error: {}", 
-                    trackingNumber, e.getMessage(), e);
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body("Failed to retrieve images for shipment");
-        }
-    }
+      
 }

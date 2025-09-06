@@ -14,10 +14,11 @@ import lombok.extern.slf4j.Slf4j;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
-import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.HashMap;
 
 @Slf4j
 @Service
@@ -138,5 +139,60 @@ public class GridFSService {
             log.debug("Image metadata not found. Image ID: {}", imageId);
         }
         return fileInfo;
+    }
+    
+    /**
+     * Stream image data directly to output stream (for better performance)
+     * @param imageId GridFS file ID
+     * @return InputStream for streaming the image
+     */
+    public InputStream streamImage(String imageId) {
+        log.debug("Streaming image from GridFS. Image ID: {}", imageId);
+        try {
+            GridFSDownloadStream downloadStream = gridFSBucket.openDownloadStream(new ObjectId(imageId));
+            log.debug("Successfully opened download stream for image ID: {}", imageId);
+            return downloadStream;
+        } catch (Exception e) {
+            log.error("Failed to stream image from GridFS. Image ID: {}. Error: {}", imageId, e.getMessage(), e);
+            throw new RuntimeException("Failed to stream image: " + imageId, e);
+        }
+    }
+    
+    /**
+     * Get image metadata with enhanced information
+     * @param imageId GridFS file ID
+     * @return Map containing image metadata
+     */
+    public Map<String, Object> getEnhancedImageInfo(String imageId) {
+        log.debug("Retrieving enhanced image metadata from GridFS. Image ID: {}", imageId);
+        try {
+            GridFSFile fileInfo = gridFSBucket.find(new Document("_id", new ObjectId(imageId))).first();
+            if (fileInfo == null) {
+                log.debug("Image metadata not found. Image ID: {}", imageId);
+                return null;
+            }
+            
+            Map<String, Object> metadata = new HashMap<>();
+            metadata.put("id", imageId);
+            metadata.put("filename", fileInfo.getFilename());
+            metadata.put("size", fileInfo.getLength());
+            metadata.put("uploadDate", fileInfo.getUploadDate());
+            metadata.put("chunkSize", fileInfo.getChunkSize());
+            
+            // Get content type from metadata
+            String contentType = "image/jpeg"; // default
+            if (fileInfo.getMetadata() != null && fileInfo.getMetadata().getString("contentType") != null) {
+                contentType = fileInfo.getMetadata().getString("contentType");
+            }
+            metadata.put("contentType", contentType);
+            
+            log.debug("Enhanced image metadata found. Image ID: {}, Filename: {}, Size: {} bytes, Content-Type: {}", 
+                    imageId, fileInfo.getFilename(), fileInfo.getLength(), contentType);
+            return metadata;
+            
+        } catch (Exception e) {
+            log.error("Failed to retrieve enhanced image metadata from GridFS. Image ID: {}. Error: {}", imageId, e.getMessage(), e);
+            return null;
+        }
     }
 }
