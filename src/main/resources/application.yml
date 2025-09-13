@@ -1,9 +1,14 @@
 spring:
   data:
     mongodb:
+      database: dockeriq
       uri: mongodb://localhost:27017/dockeriq
-  
-  # Disable MongoDB query logging to hide sensitive data
+      # uri: mongodb://dockeriq:dockeriq123@docdbiq.cluster-ckhmkioayf8x.us-east-1.docdb.amazonaws.com:27017
+      tls: true
+      tlsCAFile: classpath:global-bundle.pem
+      replicaSet: rs0
+      readPreference: secondaryPreferred
+      retryWrites: false
   jpa:
     show-sql: false
   
@@ -33,7 +38,7 @@ jwt:
 
 # Server Configuration
 server:
-  port: 8080
+  port: 5000
   servlet:
     context-path: /api
 
